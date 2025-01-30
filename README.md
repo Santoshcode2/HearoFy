@@ -3,3 +3,4 @@ HearoFy : A music player web application
    functionality, Volume seekbar etc.
 ❖ Developed a responsive website for all devices .
 ❖ It was a learning project so basic HTML , CSS and JS used for full functionality
+ https://santoshcode2.github.io/HearoFy/
