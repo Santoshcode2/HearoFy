@@ -25,7 +25,8 @@ function convertSecondsToMinutes(seconds) {
 
 async function getSongs(folder) {
     currFolder = folder;
-    let a = await fetch(`http://127.0.0.1:5500/${folder}/`);
+    // let a = await fetch(`http://127.0.0.1:5500/${folder}/`);
+    let a = await fetch(`songs1/`);
     let response = await a.text();
 
     let div = document.createElement("div");
@@ -227,7 +228,8 @@ async function main() {
          previous.addEventListener("click",()=>{
             console.log("Previous Clicked")
 
-            let index = songs1.indexOf(currentSong.src.split("/").slice(-1) [0])
+            // let index = songs1.indexOf(currentSong.src.split("/").slice(-1) [0])
+             let index = songs1.indexOf(decodeURIComponent(currentSong.src.split("/").slice(-1)[0]));
             console.log(songs1,index)
             if((index-1) >= 0){
                 playMusic(songs1[index-1])
@@ -238,7 +240,8 @@ async function main() {
          next.addEventListener("click",()=>{
             console.log("Next Clicked")
 
-            let index = songs1.indexOf(currentSong.src.split("/").slice(-1) [0])
+            // let index = songs1.indexOf(currentSong.src.split("/").slice(-1) [0])
+             let index = songs1.indexOf(decodeURIComponent(currentSong.src.split("/").slice(-1)[0]));
             console.log(songs1,index)
             if((index+1) < songs1.length){
                 playMusic(songs1[index+1])
