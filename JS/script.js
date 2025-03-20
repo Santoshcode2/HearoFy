@@ -90,32 +90,78 @@ const playMusic = async (track, pause = false) => {
     }
 };
 
+// async function displayAlbums() {
+//     try {
+//         const response = await fetch(`${BASE_PATH}/songs1/`);
+//         const text = await response.text();
+//         const div = document.createElement("div");
+//         div.innerHTML = text;
+//         const cardContainer = document.querySelector(".cardContainer");
+//         cardContainer.innerHTML = "";
+
+//         Array.from(div.getElementsByTagName("a")).forEach(async (e) => {
+//             if (!e.href.includes("/songs1")) return;
+
+//             const url = new URL(e.href);
+//             const pathSegments = url.pathname.split('/').filter(part => part !== "");
+            
+//             if (pathSegments.length < 2 || 
+//                (isGitHubPages && pathSegments[1] !== REPO_NAME) || 
+//                pathSegments[pathSegments.length - 2] !== "songs1") {
+//                 return;
+//             }
+
+//             const folder = pathSegments[pathSegments.length - 1];
+
+//             try {
+//                 const infoResponse = await fetch(`${BASE_PATH}/songs1/${folder}/info.json`);
+//                 if (!infoResponse.ok) return;
+                
+//                 const data = await infoResponse.json();
+                
+//                 cardContainer.innerHTML += `
+//                     <div data-folder="${BASE_PATH}/songs1/${folder}" class="card">
+//                         <div class="play">
+//                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+//                                 <path d="M5 20V4L19 12L5 20Z" fill="#000"/>
+//                             </svg>
+//                         </div>
+//                         <img src="${BASE_PATH}/songs1/${folder}/cover.jpg" alt="${data.title}">
+//                         <h2>${data.title}</h2>
+//                         <p>${data.description}</p>
+//                     </div>`;
+//             } catch (error) {
+//                 console.error("Error loading album:", error);
+//             }
+//         });
+
+//         Array.from(document.getElementsByClassName("card")).forEach(e => {
+//             e.addEventListener("click", async (event) => {
+//                 await getSongs(event.currentTarget.dataset.folder);
+//             });
+//         });
+
+//     } catch (error) {
+//         console.error("Error loading albums:", error);
+//     }
+// }
+
 async function displayAlbums() {
     try {
-        const response = await fetch(`${BASE_PATH}/songs1/`);
-        const text = await response.text();
-        const div = document.createElement("div");
-        div.innerHTML = text;
+        // Load manifest instead of directory listing
+        const manifestResponse = await fetch(`${BASE_PATH}/songs1/manifest.json`);
+        if (!manifestResponse.ok) throw new Error('Manifest not found');
+        
+        const manifest = await manifestResponse.json();
+
         const cardContainer = document.querySelector(".cardContainer");
         cardContainer.innerHTML = "";
 
-        Array.from(div.getElementsByTagName("a")).forEach(async (e) => {
-            if (!e.href.includes("/songs1")) return;
-
-            const url = new URL(e.href);
-            const pathSegments = url.pathname.split('/').filter(part => part !== "");
-            
-            if (pathSegments.length < 2 || 
-               (isGitHubPages && pathSegments[1] !== REPO_NAME) || 
-               pathSegments[pathSegments.length - 2] !== "songs1") {
-                return;
-            }
-
-            const folder = pathSegments[pathSegments.length - 1];
-
+        // Process all albums from manifest
+        for (const folder of manifest.albums) {
             try {
                 const infoResponse = await fetch(`${BASE_PATH}/songs1/${folder}/info.json`);
-                if (!infoResponse.ok) return;
+                if (!infoResponse.ok) continue;
                 
                 const data = await infoResponse.json();
                 
@@ -133,8 +179,9 @@ async function displayAlbums() {
             } catch (error) {
                 console.error("Error loading album:", error);
             }
-        });
+        }
 
+        // Add click handlers for cards
         Array.from(document.getElementsByClassName("card")).forEach(e => {
             e.addEventListener("click", async (event) => {
                 await getSongs(event.currentTarget.dataset.folder);
@@ -145,6 +192,23 @@ async function displayAlbums() {
         console.error("Error loading albums:", error);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 async function main() {
     // Initialize with correct base path
