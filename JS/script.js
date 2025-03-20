@@ -161,80 +161,74 @@ const playMusic = async (track, pause = false) => {
 
 
 
+
 async function displayAlbums() {
-    let a = await fetch(`http://127.0.0.1:5500/songs1/`);
-    let response = await a.text();
-    let div = document.createElement("div");
-    div.innerHTML = response;
-    let anchors = div.getElementsByTagName("a");
-    let cardContainer = document.querySelector(".cardContainer");
+    // Detect environment and set base path
+    const isGitHubPages = window.location.hostname === 'santoshcode2.github.io';
+    const basePath = isGitHubPages ? '/HearoFy' : '';
 
-    let array = Array.from(anchors);
-    for (let index = 0; index < array.length; index++) {
-        const e = array[index];
+    try {
+        // Fetch album list
+        const response = await fetch(`${basePath}/songs1/`);
+        const text = await response.text();
+        const div = document.createElement("div");
+        div.innerHTML = text;
+        const cardContainer = document.querySelector(".cardContainer");
+        cardContainer.innerHTML = ""; // Clear existing cards
 
-        if (e.href.includes("/songs1")) {
-            // Extract the path parts
-            const pathParts = new URL(e.href).pathname
-                .split('/')
-                .filter(part => part !== "");
+        // Process all links
+        Array.from(div.getElementsByTagName("a")).forEach(async (e) => {
+            if (!e.href.includes("/songs1")) return;
 
-            // Skip paths with "songs1/songs1/" structure
-            if (pathParts.length < 2 || pathParts[1] !== "songs1") {
-                console.log("Skipping invalid path:", e.href);
-                continue; // Skip this entry
+            // Parse URL path segments
+            const url = new URL(e.href);
+            const pathSegments = url.pathname.split('/').filter(part => part !== "");
+            
+            // Skip invalid paths (songs1/songs1/ case)
+            if (pathSegments.length < 2 || 
+               (isGitHubPages && pathSegments[1] !== "HearoFy") || 
+               pathSegments[pathSegments.length - 2] !== "songs1") {
+                return;
             }
 
-            // Get the subfolder name (the part after "songs1")
-            const folder = pathParts[2] || pathParts[1]; // Fallback for edge cases
-
-            // Additional check to prevent "songs1/songs1/"
-            if (folder === "songs1") {
-                console.log("Skipping invalid folder:", e.href);
-                continue;
-            }
+            // Extract folder name
+            const folder = pathSegments[pathSegments.length - 1];
 
             try {
-                // Construct the correct path to info.json
-                let a = await fetch(`http://127.0.0.1:5500/songs1/${folder}/info.json`);
-
-                // Check if the request was successful
-                if (!a.ok) {
-                    throw new Error(`Failed to load info.json for folder: ${folder}`);
-                }
-
-                // Parse JSON if the request succeeded
-                let response = await a.json();
-                console.log("Loaded info.json for folder:", folder);
-
-                // Display album card
-                cardContainer.innerHTML += ` <div data-folder="songs1/${folder}" class="card">
-                    <div class="play">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M5 20V4L19 12L5 20Z" stroke="#141B34" fill="#000" stroke-width="1.5"
-                                stroke-linejoin="round" />
-                        </svg>
-                    </div>
-                    <img src="/songs1/${folder}/cover.jpg" alt="">
-                    <h2> ${response.title} </h2>
-                    <p> ${response.description} </p>
-                </div>`;
+                // Fetch album info
+                const infoResponse = await fetch(`${basePath}/songs1/${folder}/info.json`);
+                if (!infoResponse.ok) return;
+                
+                const data = await infoResponse.json();
+                
+                // Create card HTML
+                cardContainer.innerHTML += `
+                    <div data-folder="${basePath}/songs1/${folder}" class="card">
+                        <div class="play">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M5 20V4L19 12L5 20Z" fill="#000"/>
+                            </svg>
+                        </div>
+                        <img src="${basePath}/songs1/${folder}/cover.jpg" alt="${data.title}">
+                        <h2>${data.title}</h2>
+                        <p>${data.description}</p>
+                    </div>`;
             } catch (error) {
-                console.error("Error fetching or parsing info.json:", error);
+                console.error("Error loading album info:", error);
             }
-        }
-    }
-
-    // Load the playlist whenever a card is clicked
-    Array.from(document.getElementsByClassName("card")).forEach(e => {
-        e.addEventListener("click", async item => {
-            console.log("Fetching Songs");
-            const folder = item.currentTarget.dataset.folder;
-            await getSongs(folder);
         });
-    });
-}
 
+        // Add click handlers for cards
+        Array.from(document.getElementsByClassName("card")).forEach(e => {
+            e.addEventListener("click", async (event) => {
+                await getSongs(event.currentTarget.dataset.folder);
+            });
+        });
+
+    } catch (error) {
+        console.error("Error loading albums:", error);
+    }
+}
 
 async function main() {
 
