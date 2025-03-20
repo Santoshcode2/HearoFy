@@ -161,10 +161,8 @@ const playMusic = async (track, pause = false) => {
 
 
 
-
-
 async function displayAlbums() {
-    let a = await fetch(`/songs1/`);
+    let a = await fetch(`http://127.0.0.1:5500/songs1/`);
     let response = await a.text();
     let div = document.createElement("div");
     div.innerHTML = response;
@@ -175,12 +173,30 @@ async function displayAlbums() {
     for (let index = 0; index < array.length; index++) {
         const e = array[index];
 
-        if (e.href.includes("/songs1") && !e.href.includes("htacess")) {
-            let folder = e.href.split("/").slice(-1)[0]; // Get the subfolder name
+        if (e.href.includes("/songs1")) {
+            // Extract the path parts
+            const pathParts = new URL(e.href).pathname
+                .split('/')
+                .filter(part => part !== "");
+
+            // Skip paths with "songs1/songs1/" structure
+            if (pathParts.length < 2 || pathParts[1] !== "songs1") {
+                console.log("Skipping invalid path:", e.href);
+                continue; // Skip this entry
+            }
+
+            // Get the subfolder name (the part after "songs1")
+            const folder = pathParts[2] || pathParts[1]; // Fallback for edge cases
+
+            // Additional check to prevent "songs1/songs1/"
+            if (folder === "songs1") {
+                console.log("Skipping invalid folder:", e.href);
+                continue;
+            }
 
             try {
                 // Construct the correct path to info.json
-                let a = await fetch(`/songs1/${folder}/info.json`);
+                let a = await fetch(`http://127.0.0.1:5500/songs1/${folder}/info.json`);
 
                 // Check if the request was successful
                 if (!a.ok) {
@@ -189,7 +205,7 @@ async function displayAlbums() {
 
                 // Parse JSON if the request succeeded
                 let response = await a.json();
-                console.log(response);
+                console.log("Loaded info.json for folder:", folder);
 
                 // Display album card
                 cardContainer.innerHTML += ` <div data-folder="songs1/${folder}" class="card">
@@ -213,8 +229,8 @@ async function displayAlbums() {
     Array.from(document.getElementsByClassName("card")).forEach(e => {
         e.addEventListener("click", async item => {
             console.log("Fetching Songs");
-            const folder = item.currentTarget.dataset.folder; // Full path (e.g., "songs1/subfolder1")
-            await getSongs(folder); // Fetch from the correct folder
+            const folder = item.currentTarget.dataset.folder;
+            await getSongs(folder);
         });
     });
 }
