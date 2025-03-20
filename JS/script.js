@@ -1,3 +1,6 @@
+
+
+
 console.log("Lets do some java Script");
 let currentSong = new Audio() ;
 let songs1;
@@ -25,8 +28,7 @@ function convertSecondsToMinutes(seconds) {
 
 async function getSongs(folder) {
     currFolder = folder;
-    // let a = await fetch(`http://127.0.0.1:5500/${folder}/`);
-    let a = await fetch(`songs1/`);
+    let a = await fetch(`/${folder}/`);
     let response = await a.text();
 
     let div = document.createElement("div");
@@ -93,11 +95,50 @@ async function getSongs(folder) {
 
 
 
-const playMusic = (track, pause = false) => {
-    currentSong.src = `/${currFolder}/` + track;
+// const playMusic = (track, pause = false) => {
+//     currentSong.src = `/${currFolder}/` + track;
     
+//     if (!pause) {
+//         currentSong.play();
+//         play.src = "image/pause.svg"; // Show pause icon when a song is playing
+//     } else {
+//         currentSong.pause();
+//         play.src = "image/play.svg"; // Show play icon when no song is playing
+//     }
+
+//     document.querySelector(".songinfo").innerHTML = decodeURI(track);
+//     document.querySelector(".songtime").innerHTML = "00:00 / 00:00";
+
+//     // Event listener to update the icon when the song ends
+//     currentSong.onended = () => {
+//         play.src = "image/play.svg"; // Show play icon when the song ends
+//     };
+// };
+
+
+
+
+
+const playMusic = async (track, pause = false) => {
+    // Pause and unload the current song before loading a new one
+    if (currentSong.src) {
+        currentSong.pause();
+        currentSong.src = ""; // Unload the current song
+    }
+
+    // Load the new song
+    currentSong.src = `/${currFolder}/` + track;
+
+    // Wait for the song to load before playing
+    await new Promise((resolve, reject) => {
+        currentSong.onloadeddata = resolve;
+        currentSong.onerror = reject;
+    });
+
     if (!pause) {
-        currentSong.play();
+        currentSong.play().catch(error => {
+            console.error("Error playing song:", error);
+        });
         play.src = "image/pause.svg"; // Show pause icon when a song is playing
     } else {
         currentSong.pause();
@@ -121,8 +162,9 @@ const playMusic = (track, pause = false) => {
 
 
 
-async function displayAlbums(){
-    let a = await fetch(`http://127.0.0.1:5500/songs1/`);
+
+async function displayAlbums() {
+    let a = await fetch(`/songs1/`);
     let response = await a.text();
     let div = document.createElement("div");
     div.innerHTML = response;
@@ -133,12 +175,12 @@ async function displayAlbums(){
     for (let index = 0; index < array.length; index++) {
         const e = array[index];
 
-        if (e.href.includes("/songs1")) {
-            let folder = e.href.split("/").slice(-1)[0];
+        if (e.href.includes("/songs1") && !e.href.includes("htacess")) {
+            let folder = e.href.split("/").slice(-1)[0]; // Get the subfolder name
 
             try {
-                // Corrected path for fetching info.json
-                let a = await fetch(`http://127.0.0.1:5500/songs1/${folder}/info.json`);
+                // Construct the correct path to info.json
+                let a = await fetch(`/songs1/${folder}/info.json`);
 
                 // Check if the request was successful
                 if (!a.ok) {
@@ -167,16 +209,14 @@ async function displayAlbums(){
         }
     }
 
-   // Load the playlist whenever a card is clicked
-Array.from(document.getElementsByClassName("card")).forEach(e => {
-    e.addEventListener("click", async item => {
-        console.log("Fetching Songs");
-        const folder = item.currentTarget.dataset.folder;  // Now only 'cs' or 'ncs'
-        await getSongs(folder); // Fetch from folder 'cs' or 'ncs'
+    // Load the playlist whenever a card is clicked
+    Array.from(document.getElementsByClassName("card")).forEach(e => {
+        e.addEventListener("click", async item => {
+            console.log("Fetching Songs");
+            const folder = item.currentTarget.dataset.folder; // Full path (e.g., "songs1/subfolder1")
+            await getSongs(folder); // Fetch from the correct folder
+        });
     });
-});
-
-
 }
 
 
@@ -228,8 +268,7 @@ async function main() {
          previous.addEventListener("click",()=>{
             console.log("Previous Clicked")
 
-            // let index = songs1.indexOf(currentSong.src.split("/").slice(-1) [0])
-             let index = songs1.indexOf(decodeURIComponent(currentSong.src.split("/").slice(-1)[0]));
+            let index = songs1.indexOf(currentSong.src.split("/").slice(-1) [0])
             console.log(songs1,index)
             if((index-1) >= 0){
                 playMusic(songs1[index-1])
@@ -240,8 +279,7 @@ async function main() {
          next.addEventListener("click",()=>{
             console.log("Next Clicked")
 
-            // let index = songs1.indexOf(currentSong.src.split("/").slice(-1) [0])
-             let index = songs1.indexOf(decodeURIComponent(currentSong.src.split("/").slice(-1)[0]));
+            let index = songs1.indexOf(currentSong.src.split("/").slice(-1) [0])
             console.log(songs1,index)
             if((index+1) < songs1.length){
                 playMusic(songs1[index+1])
@@ -273,4 +311,3 @@ async function main() {
 }
 
 main();
-
