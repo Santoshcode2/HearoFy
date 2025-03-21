@@ -1,7 +1,7 @@
 // Add environment detection at the top
 const isGitHubPages = window.location.hostname === 'santoshcode2.github.io';
 const REPO_NAME = 'HearoFy';
-const BASE_PATH = isGitHubPages ? `/${REPO_NAME}/` : '/'; 
+const BASE_PATH = isGitHubPages ? `/${REPO_NAME}/` : '/';
 
 console.log("Lets do some java Script");
 let currentSong = new Audio();
@@ -95,24 +95,33 @@ async function getSongs(folder) {
 const playMusic = async (trackPath, pause = false) => {
     try {
         if (!trackPath) throw new Error("No track specified");
-        
+
         // Clear current song
         if (currentSong.src) {
             currentSong.pause();
             currentSong.src = "";
         }
 
-        // Encode special characters in path
-        const encodedPath = encodeURI(trackPath);
+        // 1. Ensure trackPath doesn't start with a slash
+        const cleanTrackPath = trackPath.startsWith('/') ? trackPath.slice(1) : trackPath;
+
+        // 2. Encode special characters in path
+        const encodedPath = encodeURI(cleanTrackPath);
+
+        // 3. Construct the full URL with proper slashes
         currentSong.src = `${BASE_PATH}${encodedPath}`;
-        
+
+        // Debugging: Log the final URL to verify
+        console.log('Final Audio URL:', currentSong.src);
+
+        // Wait for the audio to load
         await new Promise((resolve, reject) => {
             currentSong.onloadeddata = resolve;
             currentSong.onerror = reject;
         });
 
         // Update UI
-        const fileName = trackPath.split('/').pop().replace(/%20/g, " ");
+        const fileName = cleanTrackPath.split('/').pop().replace(/%20/g, " ");
         document.querySelector(".songinfo").textContent = fileName;
 
         if (!pause) {
@@ -204,9 +213,10 @@ async function displayAlbums() {
 
 async function main() {
     // Initialize with correct base path
-    await getSongs(`/songs1/ncs`);
+    await getSongs(`songs1/ncs`);
     playMusic(songs1[0], true);
     displayAlbums();
+    console.log('Initial Album Path:', `songs1/ncs`); //console
 
     // Player controls
     document.querySelector(".play").addEventListener("click", () => {
