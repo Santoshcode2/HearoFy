@@ -1,7 +1,7 @@
 // Add environment detection at the top
 const isGitHubPages = window.location.hostname === 'santoshcode2.github.io';
 const REPO_NAME = 'HearoFy';
-const BASE_PATH = isGitHubPages ? `/${REPO_NAME}` : '';
+const BASE_PATH = isGitHubPages ? `/${REPO_NAME}/` : '/'; 
 
 console.log("Lets do some java Script");
 let currentSong = new Audio();
@@ -21,7 +21,7 @@ async function getSongs(folder) {
     try {
         // Clean up folder path and fetch album info
         const cleanFolder = folder.replace(/\/$/, ''); // Remove trailing slash
-        const albumInfoPath = `${BASE_PATH}/${cleanFolder}/info.json`;
+        const albumInfoPath = `${BASE_PATH}${cleanFolder}/info.json`;
         
         // Fetch album information
         const infoResponse = await fetch(albumInfoPath);
@@ -135,7 +135,7 @@ async function displayAlbums() {
 
     try {
         // 1. Fetch the manifest file
-        const manifestResponse = await fetch(`${BASE_PATH}/songs1/manifest.json`);
+        const manifestResponse = await fetch(`${BASE_PATH}songs1/manifest.json`);
         if (!manifestResponse.ok) throw new Error('Manifest not found');
         
         // 2. Parse the manifest data
@@ -204,7 +204,7 @@ async function displayAlbums() {
 
 async function main() {
     // Initialize with correct base path
-    await getSongs(`/songs1/ncs`);
+    await getSongs(`songs1/ncs`);
     playMusic(songs1[0], true);
     displayAlbums();
 
