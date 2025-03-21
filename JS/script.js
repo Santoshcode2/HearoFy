@@ -168,6 +168,43 @@ async function getSongs(folder) {
 // };
 
 
+// const playMusic = async (trackPath, pause = false) => {
+//     try {
+//         if (!trackPath) throw new Error("No track specified");
+        
+//         // Clear current song
+//         if (currentSong.src) {
+//             currentSong.pause();
+//             currentSong.src = "";
+//         }
+
+//         // Load new song
+//         currentSong.src = `${BASE_PATH}${trackPath}`;
+        
+//         await new Promise((resolve, reject) => {
+//             currentSong.onloadeddata = resolve;
+//             currentSong.onerror = reject;
+//         });
+
+//         // Update UI elements safely
+//         const playButton = document.querySelector(".play img");
+//         if (playButton) {
+//             playButton.src = `${BASE_PATH}/image/${
+//                 pause ? "play" : "pause"
+//             }.svg`;
+//         }
+
+//         // Update song info
+//         const songName = trackPath.split('/').pop().replace(/%20/g, " ");
+//         document.querySelector(".songinfo").textContent = songName;
+
+//     } catch (error) {
+//         console.error("Playback error:", error);
+//         if (document.querySelector(".play img")) {
+//             document.querySelector(".play img").src = `${BASE_PATH}/image/play.svg`;
+//         }
+//     }
+// };last
 const playMusic = async (trackPath, pause = false) => {
     try {
         if (!trackPath) throw new Error("No track specified");
@@ -178,31 +215,27 @@ const playMusic = async (trackPath, pause = false) => {
             currentSong.src = "";
         }
 
-        // Load new song
-        currentSong.src = `${BASE_PATH}${trackPath}`;
+        // Encode special characters in path
+        const encodedPath = encodeURI(trackPath);
+        currentSong.src = `${BASE_PATH}${encodedPath}`;
         
         await new Promise((resolve, reject) => {
             currentSong.onloadeddata = resolve;
             currentSong.onerror = reject;
         });
 
-        // Update UI elements safely
-        const playButton = document.querySelector(".play img");
-        if (playButton) {
-            playButton.src = `${BASE_PATH}/image/${
-                pause ? "play" : "pause"
-            }.svg`;
-        }
+        // Update UI
+        const fileName = trackPath.split('/').pop().replace(/%20/g, " ");
+        document.querySelector(".songinfo").textContent = fileName;
 
-        // Update song info
-        const songName = trackPath.split('/').pop().replace(/%20/g, " ");
-        document.querySelector(".songinfo").textContent = songName;
+        if (!pause) {
+            await currentSong.play();
+            document.querySelector(".play img").src = `${BASE_PATH}/image/pause.svg`;
+        }
 
     } catch (error) {
         console.error("Playback error:", error);
-        if (document.querySelector(".play img")) {
-            document.querySelector(".play img").src = `${BASE_PATH}/image/play.svg`;
-        }
+        document.querySelector(".play img").src = `${BASE_PATH}/image/play.svg`;
     }
 };
 
