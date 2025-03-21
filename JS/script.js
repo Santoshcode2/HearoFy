@@ -204,7 +204,7 @@ async function displayAlbums() {
 
 async function main() {
     // Initialize with correct base path
-    await getSongs(`songs1/ncs`);
+    await getSongs(`/songs1/ncs`);
     playMusic(songs1[0], true);
     displayAlbums();
 
