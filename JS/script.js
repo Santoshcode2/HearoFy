@@ -309,44 +309,58 @@ const playMusic = async (trackPath, pause = false) => {
 //     }
 // }
 
-
 async function displayAlbums() {
     // Detect environment and set base path
     const isGitHubPages = window.location.hostname === 'santoshcode2.github.io';
     const basePath = isGitHubPages ? '/HearoFy' : '';
 
     try {
-        // ... existing fetch and manifest code ...
+        // 1. Fetch the manifest file
+        const manifestResponse = await fetch(`${basePath}/songs1/manifest.json`);
+        if (!manifestResponse.ok) throw new Error('Manifest not found');
+        
+        // 2. Parse the manifest data
+        const manifest = await manifestResponse.json(); // 👈 This is the critical fix
+        
+        // 3. Get card container and clear it
+        const cardContainer = document.querySelector(".cardContainer");
+        cardContainer.innerHTML = "";
 
-        // Add this click handler function INSIDE displayAlbums
+        // 4. Process albums from manifest
         const handleCardClick = async (event) => {
             const card = event.currentTarget;
-            if (!card || !card.dataset.folder) return;
+            if (!card?.dataset?.folder) return;
             await getSongs(card.dataset.folder);
         };
 
-        // Existing card creation loop
-        for (const folder of manifest.albums) {
+        // 5. Create album cards
+        for (const folder of manifest.albums) { // 👈 Now using manifest from response
             try {
-                // ... existing card creation code ...
-
-                // Modify card creation to include basePath
+                const infoResponse = await fetch(`${basePath}/songs1/${folder}/info.json`);
+                if (!infoResponse.ok) continue;
+                
+                const data = await infoResponse.json();
+                
                 cardContainer.innerHTML += `
                     <div data-folder="${basePath}/songs1/${folder}" class="card">
-                        <!-- rest of your card HTML -->
+                        <div class="play">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M5 20V4L19 12L5 20Z" fill="#000"/>
+                            </svg>
+                        </div>
+                        <img src="${basePath}/songs1/${folder}/cover.jpg" alt="${data.title}">
+                        <h2>${data.title}</h2>
+                        <p>${data.description}</p>
                     </div>`;
             } catch (error) {
-                console.error("Error loading album info:", error);
+                console.error("Error loading album:", error);
             }
         }
 
-        // Replace existing event listener code with this
+        // 6. Add event listeners safely
         setTimeout(() => {
             Array.from(document.getElementsByClassName("card")).forEach(e => {
-                if (e) {
-                    e.removeEventListener("click", handleCardClick); // Cleanup first
-                    e.addEventListener("click", handleCardClick);
-                }
+                if (e) e.addEventListener("click", handleCardClick);
             });
         }, 100);
 
@@ -354,8 +368,6 @@ async function displayAlbums() {
         console.error("Error loading albums:", error);
     }
 }
-
-
 
 
 
