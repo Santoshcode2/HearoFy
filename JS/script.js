@@ -4,7 +4,8 @@ const REPO_NAME = 'HearoFy';
 const BASE_PATH = isGitHubPages ? `/${REPO_NAME}/` : '/';
 
 console.log("Lets do some java Script");
-let currentSong = new Audio();
+// let currentSong = new Audio();
+let currentSong = document.querySelector('audio');
 let songs1;
 let currFolder;
 
@@ -90,8 +91,6 @@ async function getSongs(folder) {
 
 
 
-
-
 const playMusic = async (trackPath, pause = false) => {
     try {
         if (!trackPath) throw new Error("No track specified");
@@ -102,11 +101,11 @@ const playMusic = async (trackPath, pause = false) => {
             currentSong.src = "";
         }
 
-        // 1. Fix double encoding of spaces
+        // Fix double encoding of spaces
         const cleanTrackPath = trackPath.replace(/%25/g, '%'); // Fix double encoding
         const encodedPath = encodeURI(cleanTrackPath);
 
-        // 2. Construct the full URL
+        // Construct the full URL
         currentSong.src = `${BASE_PATH}${encodedPath}`;
 
         // Debugging: Log the final URL
@@ -132,6 +131,7 @@ const playMusic = async (trackPath, pause = false) => {
         document.querySelector(".play img").src = `${BASE_PATH}/image/play.svg`;
     }
 };
+
 
 
 async function displayAlbums() {
@@ -206,68 +206,125 @@ async function displayAlbums() {
 
 
 
-
-
 async function main() {
-    // Initialize with correct base path
-    await getSongs(`songs1/ncs`);
-    playMusic(songs1[0], true);
-    displayAlbums();
-    console.log('Initial Album Path:', `songs1/ncs`); //console
+    try {
+        // Initialize with correct base path
+        await getSongs(`songs1/ncs`);
+        playMusic(songs1[0], true);
+        displayAlbums();
+        console.log('Initial Album Path:', `songs1/ncs`); // Debugging
 
-    // Player controls
-    document.querySelector(".play").addEventListener("click", () => {
-        currentSong[currentSong.paused ? "play" : "pause"]();
-        document.querySelector(".play img").src = 
-            `${BASE_PATH}/image/${currentSong.paused ? "play" : "pause"}.svg`;
-    });
+        // Wait for DOM to fully load before adding event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Player controls
+            const playButton = document.querySelector(".play");
+            if (playButton) {
+                playButton.addEventListener("click", () => {
+                    currentSong[currentSong.paused ? "play" : "pause"]();
+                    const playImg = document.querySelector(".play img");
+                    if (playImg) {
+                        playImg.src = `${BASE_PATH}/image/${currentSong.paused ? "play" : "pause"}.svg`;
+                    }
+                });
+            } else {
+                console.error('Play button not found');
+            }
 
-    currentSong.addEventListener("timeupdate", () => {
-        document.querySelector(".songtime").textContent = 
-            `${convertSecondsToMinutes(currentSong.currentTime)} / ${convertSecondsToMinutes(currentSong.duration)}`;
-        document.querySelector(".circle").style.left = 
-            `${(currentSong.currentTime / currentSong.duration) * 100}%`;
-    });
+            // Time update event
+            currentSong.addEventListener("timeupdate", () => {
+                const songTime = document.querySelector(".songtime");
+                const circle = document.querySelector(".circle");
+                if (songTime && circle) {
+                    songTime.textContent = 
+                        `${convertSecondsToMinutes(currentSong.currentTime)} / ${convertSecondsToMinutes(currentSong.duration)}`;
+                    circle.style.left = `${(currentSong.currentTime / currentSong.duration) * 100}%`;
+                }
+            });
 
-    document.querySelector(".seekbar").addEventListener("click", e => {
-        const percent = (e.offsetX / e.target.getBoundingClientRect().width) * 100;
-        currentSong.currentTime = (currentSong.duration * percent) / 100;
-    });
+            // Seekbar click event
+            const seekbar = document.querySelector(".seekbar");
+            if (seekbar) {
+                seekbar.addEventListener("click", e => {
+                    const percent = (e.offsetX / e.target.getBoundingClientRect().width) * 100;
+                    currentSong.currentTime = (currentSong.duration * percent) / 100;
+                });
+            } else {
+                console.error('Seekbar not found');
+            }
 
-    // Navigation controls
-    document.querySelector(".hamburger").addEventListener("click", () => {
-        document.querySelector(".left").style.left = "0";
-    });
+            // Navigation controls
+            const hamburger = document.querySelector(".hamburger");
+            if (hamburger) {
+                hamburger.addEventListener("click", () => {
+                    const leftPanel = document.querySelector(".left");
+                    if (leftPanel) leftPanel.style.left = "0";
+                });
+            } else {
+                console.error('Hamburger button not found');
+            }
 
-    document.querySelector(".close").addEventListener("click", () => {
-        document.querySelector(".left").style.left = "-120%";
-    });
+            const closeButton = document.querySelector(".close");
+            if (closeButton) {
+                closeButton.addEventListener("click", () => {
+                    const leftPanel = document.querySelector(".left");
+                    if (leftPanel) leftPanel.style.left = "-120%";
+                });
+            } else {
+                console.error('Close button not found');
+            }
 
-    document.querySelector(".previous").addEventListener("click", () => {
-        const index = songs1.indexOf(currentSong.src.split("/").pop());
-        if (index > 0) playMusic(songs1[index - 1]);
-    });
+            const previousButton = document.querySelector(".previous");
+            if (previousButton) {
+                previousButton.addEventListener("click", () => {
+                    const index = songs1.indexOf(currentSong.src.split("/").pop());
+                    if (index > 0) playMusic(songs1[index - 1]);
+                });
+            } else {
+                console.error('Previous button not found');
+            }
 
-    document.querySelector(".next").addEventListener("click", () => {
-        const index = songs1.indexOf(currentSong.src.split("/").pop());
-        if (index < songs1.length - 1) playMusic(songs1[index + 1]);
-    });
+            const nextButton = document.querySelector(".next");
+            if (nextButton) {
+                nextButton.addEventListener("click", () => {
+                    const index = songs1.indexOf(currentSong.src.split("/").pop());
+                    if (index < songs1.length - 1) playMusic(songs1[index + 1]);
+                });
+            } else {
+                console.error('Next button not found');
+            }
 
-    document.querySelector(".volume img").addEventListener("click", e => {
-        if (e.target.src.includes("volume.svg")) {
-            e.target.src = `${BASE_PATH}/image/mute.svg`;
-            currentSong.volume = 0;
-            document.querySelector(".range input").value = 0;
-        } else {
-            e.target.src = `${BASE_PATH}/image/volume.svg`;
-            currentSong.volume = 0.1;
-            document.querySelector(".range input").value = 16;
-        }
-    });
+            // Volume controls
+            const volumeImg = document.querySelector(".volume img");
+            if (volumeImg) {
+                volumeImg.addEventListener("click", e => {
+                    if (e.target.src.includes("volume.svg")) {
+                        e.target.src = `${BASE_PATH}/image/mute.svg`;
+                        currentSong.volume = 0;
+                        const rangeInput = document.querySelector(".range input");
+                        if (rangeInput) rangeInput.value = 0;
+                    } else {
+                        e.target.src = `${BASE_PATH}/image/volume.svg`;
+                        currentSong.volume = 0.1;
+                        const rangeInput = document.querySelector(".range input");
+                        if (rangeInput) rangeInput.value = 16;
+                    }
+                });
+            } else {
+                console.error('Volume image not found');
+            }
 
-    document.querySelector(".range input").addEventListener("input", e => {
-        currentSong.volume = parseInt(e.target.value) / 100;
-    });
+            const rangeInput = document.querySelector(".range input");
+            if (rangeInput) {
+                rangeInput.addEventListener("input", e => {
+                    currentSong.volume = parseInt(e.target.value) / 100;
+                });
+            } else {
+                console.error('Range input not found');
+            }
+        });
+
+    } catch (error) {
+        console.error('Error in main function:', error);
+    }
 }
-
 main();
