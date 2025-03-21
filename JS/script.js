@@ -102,16 +102,14 @@ const playMusic = async (trackPath, pause = false) => {
             currentSong.src = "";
         }
 
-        // 1. Ensure trackPath doesn't start with a slash
-        const cleanTrackPath = trackPath.startsWith('/') ? trackPath.slice(1) : trackPath;
-
-        // 2. Encode special characters in path
+        // 1. Fix double encoding of spaces
+        const cleanTrackPath = trackPath.replace(/%25/g, '%'); // Fix double encoding
         const encodedPath = encodeURI(cleanTrackPath);
 
-        // 3. Construct the full URL with proper slashes
+        // 2. Construct the full URL
         currentSong.src = `${BASE_PATH}${encodedPath}`;
 
-        // Debugging: Log the final URL to verify
+        // Debugging: Log the final URL
         console.log('Final Audio URL:', currentSong.src);
 
         // Wait for the audio to load
@@ -134,7 +132,6 @@ const playMusic = async (trackPath, pause = false) => {
         document.querySelector(".play img").src = `${BASE_PATH}/image/play.svg`;
     }
 };
-
 
 
 async function displayAlbums() {
