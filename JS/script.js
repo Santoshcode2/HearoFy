@@ -91,7 +91,7 @@ async function getSongs(folder) {
 
 
 
-cconst playMusic = async (trackPath, pause = false) => {
+const playMusic = async (trackPath, pause = false) => {
     try {
         if (!trackPath) throw new Error("No track specified");
 
