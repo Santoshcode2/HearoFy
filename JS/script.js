@@ -18,30 +18,109 @@ function convertSecondsToMinutes(seconds) {
 
 
 
+// async function getSongs(folder) {
+//     try {
+//         // Clean up folder path and fetch album info
+//         const cleanFolder = folder.replace(/^\/|\/$/g, '');// Remove trailing slash
+//         const albumInfoPath = `${BASE_PATH}${cleanFolder}/info.json`;
+        
+//         // Fetch album information
+//         const infoResponse = await fetch(albumInfoPath);
+//         if (!infoResponse.ok) throw new Error(`Failed to load album info: ${infoResponse.status}`);
+        
+//         const albumInfo = await infoResponse.json();
+        
+//         // Set current folder and process songs
+//         currFolder = cleanFolder;
+//         songs1 = albumInfo.songs.map(song => 
+//             `${cleanFolder}/${song}` 
+//         );
+
+//         // Update song list display
+//         const songUL = document.querySelector(".songList ul");
+//         songUL.innerHTML = songs1.map(song => {
+//             const fileName = decodeURIComponent(song.split('/').pop());
+//             const formattedSong = fileName.replace(/_/g, ' ').replace(/.mp3$/, '');
+            
+//             return `<li>        
+//                 <img class="invert" src="${BASE_PATH}/image/music.svg" alt="">
+//                 <div class="info">
+//                     <div>${formattedSong}</div>
+//                     <div>${albumInfo.artist || "Santosh"}</div>
+//                 </div>
+//                 <div class="playnow">
+//                     <span>Play Now</span>
+//                     <img class="invert" src="${BASE_PATH}/image/play.svg" alt="">
+//                 </div>  
+//             </li>`;
+//         }).join('');
+
+//         // Add click handlers safely
+//         if (songUL) {
+//             Array.from(songUL.children).forEach(e => {
+//                 const songElement = e.querySelector(".info div:first-child");
+//                 if (songElement) {
+//                     e.addEventListener("click", () => {
+//                         const songIndex = Array.from(songUL.children).indexOf(e);
+//                         playMusic(songs1[songIndex]);
+//                     });
+//                 }
+//             });
+//         }
+
+//         // Play first song if available
+//        if (songs1.length > 0) {
+//     // Only auto-play if we're loading the initial "ncs" folder
+//     const shouldAutoPlay = folder === 'songs1/ncs';
+//     playMusic(songs1[0], !shouldAutoPlay); // ✅ Plays only for ncs
+// }
+//     } catch (error) {
+//         console.error("Error loading songs:", error);
+//         songs1 = [];
+//         const songUL = document.querySelector(".songList ul");
+//         if (songUL) songUL.innerHTML = "<li>Error loading songs</li>";
+//     }
+// }
+
+
 async function getSongs(folder) {
     try {
         // Clean up folder path and fetch album info
-        const cleanFolder = folder.replace(/^\/|\/$/g, '');// Remove trailing slash
+        const cleanFolder = folder.replace(/^\/|\/$/g, '');
         const albumInfoPath = `${BASE_PATH}${cleanFolder}/info.json`;
         
-        // Fetch album information
+        // Fetch album information with error handling
         const infoResponse = await fetch(albumInfoPath);
-        if (!infoResponse.ok) throw new Error(`Failed to load album info: ${infoResponse.status}`);
+        if (!infoResponse.ok) {
+            throw new Error(`Failed to load album info: ${infoResponse.status} ${infoResponse.statusText}`);
+        }
         
+        // Validate JSON structure
         const albumInfo = await infoResponse.json();
-        
-        // Set current folder and process songs
+        if (!albumInfo?.songs || !Array.isArray(albumInfo.songs)) {
+            throw new Error("Invalid album info format - missing songs array");
+        }
+
+        // Process song paths with encoding
         currFolder = cleanFolder;
-        songs1 = albumInfo.songs.map(song => 
-            `${cleanFolder}/${song}` 
-        );
+        songs1 = albumInfo.songs.map(song => {
+            // Encode each song name and join with folder
+            const encodedSong = encodeURIComponent(song).replace(/%2F/g, '/');
+            return `${cleanFolder}/${encodedSong}`;
+        });
 
         // Update song list display
         const songUL = document.querySelector(".songList ul");
+        if (!songUL) throw new Error("Song list container not found");
+        
         songUL.innerHTML = songs1.map(song => {
+            // Decode for display purposes only
             const fileName = decodeURIComponent(song.split('/').pop());
-            const formattedSong = fileName.replace(/_/g, ' ').replace(/.mp3$/, '');
-            
+            const formattedSong = fileName
+                .replace(/_/g, ' ')
+                .replace(/\.mp3$/i, '')
+                .replace(/%20/g, ' '); // Handle spaces in filenames
+
             return `<li>        
                 <img class="invert" src="${BASE_PATH}/image/music.svg" alt="">
                 <div class="info">
@@ -55,35 +134,48 @@ async function getSongs(folder) {
             </li>`;
         }).join('');
 
-        // Add click handlers safely
-        if (songUL) {
-            Array.from(songUL.children).forEach(e => {
-                const songElement = e.querySelector(".info div:first-child");
-                if (songElement) {
-                    e.addEventListener("click", () => {
-                        const songIndex = Array.from(songUL.children).indexOf(e);
-                        playMusic(songs1[songIndex]);
-                    });
-                }
+        // Add click handlers with proper indexing
+        Array.from(songUL.children).forEach((e, index) => {
+            e.addEventListener("click", () => {
+                // Use the index directly instead of searching
+                playMusic(songs1[index]).catch(error => {
+                    console.error("Playback failed:", error);
+                    e.querySelector(".playnow span").textContent = "Failed to play";
+                });
             });
+        });
+
+        // Handle initial playback with proper async/await
+        if (songs1.length > 0) {
+            const isInitialLoad = folder === 'songs1/ncs';
+            try {
+                await playMusic(songs1[0], !isInitialLoad);
+                if (isInitialLoad) {
+                    // Update play button state for initial load
+                    document.querySelector(".play img").src = `${BASE_PATH}/image/pause.svg`;
+                }
+            } catch (error) {
+                console.error("Initial playback failed:", error);
+                songUL.querySelector("li:first-child .playnow span").textContent = "Play failed";
+            }
         }
 
-        // Play first song if available
-       if (songs1.length > 0) {
-    // Only auto-play if we're loading the initial "ncs" folder
-    const shouldAutoPlay = folder === 'songs1/ncs';
-    playMusic(songs1[0], !shouldAutoPlay); // ✅ Plays only for ncs
-}
     } catch (error) {
         console.error("Error loading songs:", error);
         songs1 = [];
         const songUL = document.querySelector(".songList ul");
-        if (songUL) songUL.innerHTML = "<li>Error loading songs</li>";
+        if (songUL) {
+            songUL.innerHTML = `
+                <li class="error">
+                    <img class="invert" src="${BASE_PATH}/image/error.svg" alt="">
+                    <div class="info">
+                        <div>Error loading songs</div>
+                        <div>${error.message}</div>
+                    </div>
+                </li>`;
+        }
     }
 }
-
-
-
 
 
 
@@ -121,44 +213,121 @@ const playMusic = async (trackPath, pause = false) => {
         // });
 
 // Replace the loading promise with:
-await new Promise((resolve, reject) => {
-    const handleLoad = () => {
-        currentSong.removeEventListener('canplaythrough', handleLoad);
-        currentSong.removeEventListener('error', handleError);
-        resolve();
-    };
-    const handleError = (e) => {
-        currentSong.removeEventListener('canplaythrough', handleLoad);
-        currentSong.removeEventListener('error', handleError);
-        reject(new Error(`Audio load failed: ${e.message}`));
-    };
+// await new Promise((resolve, reject) => {
+//     const handleLoad = () => {
+//         currentSong.removeEventListener('canplaythrough', handleLoad);
+//         currentSong.removeEventListener('error', handleError);
+//         resolve();
+//     };
+//     const handleError = (e) => {
+//         currentSong.removeEventListener('canplaythrough', handleLoad);
+//         currentSong.removeEventListener('error', handleError);
+//         reject(new Error(`Audio load failed: ${e.message}`));
+//     };
     
-    currentSong.addEventListener('canplaythrough', handleLoad);
-    currentSong.addEventListener('error', handleError);
-});
+//     currentSong.addEventListener('canplaythrough', handleLoad);
+//     currentSong.addEventListener('error', handleError);
+// });
 
-        // 🔴 FIXED: Update UI safely
-        const fileName = decodeURIComponent(encodedPath.split('/').pop())
-            .replace(/_/g, ' ') // Replace underscores with spaces
-            .replace(/.mp3$/i, ''); // Remove .mp3 extension
+//         // 🔴 FIXED: Update UI safely
+//         const fileName = decodeURIComponent(encodedPath.split('/').pop())
+//             .replace(/_/g, ' ') // Replace underscores with spaces
+//             .replace(/.mp3$/i, ''); // Remove .mp3 extension
 
-        const songInfo = document.querySelector(".songinfo");
-        if (songInfo) songInfo.textContent = fileName;
+//         const songInfo = document.querySelector(".songinfo");
+//         if (songInfo) songInfo.textContent = fileName;
+
+//         if (!pause) {
+//             await currentSong.play().catch(error => {
+//                 console.error('Play failed:', error);
+//             });
+//             const playImg = document.querySelector(".play img");
+//             if (playImg) playImg.src = `${BASE_PATH}/image/pause.svg`;
+//         }
+
+//     } catch (error) {
+//         console.error("Playback error:", error);
+//         const playImg = document.querySelector(".play img");
+//         if (playImg) playImg.src = `${BASE_PATH}/image/play.svg`;
+//     }
+// };
+
+const playMusic = async (trackPath, pause = false) => {
+    try {
+        if (!trackPath) throw new Error("No track specified");
+
+        // Clear current song
+        currentSong.pause();
+        currentSong.src = ''; // Clear previous source
+
+        // Construct URL - simplified version
+        const audioUrl = `${BASE_PATH}${encodeURI(trackPath)}`;
+        console.log('Loading audio from:', audioUrl);
+        
+        // Set new source
+        currentSong.src = audioUrl;
+        
+        // Improved loading handler
+        await new Promise((resolve, reject) => {
+            const onSuccess = () => {
+                currentSong.removeEventListener('canplaythrough', onSuccess);
+                currentSong.removeEventListener('error', onError);
+                resolve();
+            };
+            
+            const onError = (err) => {
+                currentSong.removeEventListener('canplaythrough', onSuccess);
+                currentSong.removeEventListener('error', onError);
+                reject(new Error(`Failed to load audio: ${audioUrl}`));
+            };
+            
+            currentSong.addEventListener('canplaythrough', onSuccess);
+            currentSong.addEventListener('error', onError);
+            
+            // Timeout fallback
+            setTimeout(() => {
+                if (!currentSong.readyState) {
+                    reject(new Error('Audio loading timed out'));
+                }
+            }, 10000);
+        });
+
+        // Update UI
+        const fileName = trackPath.split('/').pop()
+            .replace(/_/g, ' ')
+            .replace(/\.mp3$/i, '');
+        
+        document.querySelector(".songinfo").textContent = fileName;
 
         if (!pause) {
-            await currentSong.play().catch(error => {
-                console.error('Play failed:', error);
-            });
-            const playImg = document.querySelector(".play img");
-            if (playImg) playImg.src = `${BASE_PATH}/image/pause.svg`;
+            await currentSong.play();
+            document.querySelector(".play img").src = `${BASE_PATH}/image/pause.svg`;
         }
 
     } catch (error) {
-        console.error("Playback error:", error);
-        const playImg = document.querySelector(".play img");
-        if (playImg) playImg.src = `${BASE_PATH}/image/play.svg`;
+        console.error("Playback failed:", error.message);
+        document.querySelector(".play img").src = `${BASE_PATH}/image/play.svg`;
+        // Show error to user
+        document.querySelector(".songinfo").textContent = "Error loading song";
     }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
 async function displayAlbums() {
     try {
