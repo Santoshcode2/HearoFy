@@ -69,10 +69,11 @@ async function getSongs(folder) {
         }
 
         // Play first song if available
-        if (songs1.length > 0) {
-            playMusic(songs1[0], true);
-        }
-
+       if (songs1.length > 0) {
+    // Only auto-play if we're loading the initial "ncs" folder
+    const shouldAutoPlay = folder === 'songs1/ncs';
+    playMusic(songs1[0], !shouldAutoPlay); // ✅ Plays only for ncs
+}
     } catch (error) {
         console.error("Error loading songs:", error);
         songs1 = [];
@@ -114,10 +115,27 @@ const playMusic = async (trackPath, pause = false) => {
         console.log('Final Audio URL:', currentSong.src);
 
         // 🔴 FIXED: Wait for audio to load
-        await new Promise((resolve, reject) => {
-            currentSong.onloadedmetadata = resolve; // Use onloadedmetadata
-            currentSong.onerror = reject;
-        });
+        // await new Promise((resolve, reject) => {
+        //     currentSong.onloadedmetadata = resolve; // Use onloadedmetadata
+        //     currentSong.onerror = reject;
+        // });
+
+// Replace the loading promise with:
+await new Promise((resolve, reject) => {
+    const handleLoad = () => {
+        currentSong.removeEventListener('canplaythrough', handleLoad);
+        currentSong.removeEventListener('error', handleError);
+        resolve();
+    };
+    const handleError = (e) => {
+        currentSong.removeEventListener('canplaythrough', handleLoad);
+        currentSong.removeEventListener('error', handleError);
+        reject(new Error(`Audio load failed: ${e.message}`));
+    };
+    
+    currentSong.addEventListener('canplaythrough', handleLoad);
+    currentSong.addEventListener('error', handleError);
+});
 
         // 🔴 FIXED: Update UI safely
         const fileName = decodeURIComponent(encodedPath.split('/').pop())
@@ -295,7 +313,9 @@ async function main() {
         });
 
         addListener('.next', 'click', () => {
-            const index = songs1.indexOf(currentSong.src.split("/").pop());
+            // const index = songs1.indexOf(currentSong.src.split("/").pop());
+            const currentPath = currentSong.src.replace(window.location.origin + BASE_PATH, '');
+const index = songs1.indexOf(decodeURIComponent(currentPath));
             if (index < songs1.length - 1) playMusic(songs1[index + 1]);
         });
 
